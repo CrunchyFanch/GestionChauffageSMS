@@ -25,28 +25,37 @@ void setup()
   GSM.begin(19200);               // the GPRS baud rate   
   Serial.begin(19200);    // the GPRS baud rate 
   delay(500);
+  SupprimerToutSms();
 }
  
 void loop()
 {
 
-while (GSM.available()){
+/*while (GSM.available()){
     Serial.write(GSM.read());
-}
+}*/
  SmsRecu = LireMessage();
- Serial.println(SmsRecu);
+ //Serial.println(SmsRecu);
  delay(300);
  ProtocoleChauffage(SmsRecu);
+  delay(300);
 
- SmsRecu = "";
  
- delay(2000);
+// delay(2000);
  
 
 }
  
 void EnvoyerSMS(char * message,char * numeroGSM)
 {
+  int timeoutf;
+  int timeoutd = millis();
+  
+  while (GSM.available() != 0) {     //attente que la ligne RX soit rendu
+    Serial.write(GSM.read());
+  }
+  
+    
   GSM.print("AT+CMGF=1\r");    //Because we want to send the SMS in text mode
   delay(100);
   GSM.print("AT + CMGS = \"");
