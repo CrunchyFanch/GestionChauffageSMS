@@ -4,7 +4,22 @@
 #include <String.h>
  
 #define NUM_GSM_RECEVEUR "+33650829390" //numero pour envoyer les sms d'acquittement
-#define TIMEOUT_AT 10000  //timeout de temps de reponse d'une commande AT pour eviter boucle infini
+#define TIMEOUT_AT 20000  //timeout de temps de reponse d'une commande AT pour eviter boucle infini
+
+
+#define PIN_C1 2     //defini les sortie qui doivent allimenter les telerupteurs !! ne pas utiliser 0,1,7,8 (port serie)
+#define PIN_C2 3
+#define PIN_C3 4
+#define PIN_C4 5
+
+#define RETOUR_C1 8    //defini les entrées sur laquelle on lit l'etat du chauffage 
+#define RETOUR_C2 9
+#define RETOUR_C3 10
+#define RETOUR_C4 11
+
+#define DUREE_IMPULS 3000
+
+
 
 #define COMMANDE_ALLUM_C1  "C1_ON"     //Definition des mot clés a envoyer par sms pour effectuer une action sur les chauffage
 #define COMMANDE_ETEINT_C1 "C1_OFF"
@@ -19,7 +34,8 @@
 
 
 SoftwareSerial GSM(7, 8);
-String SmsRecu; 
+String SmsRecu,CommandeAT;
+char c;
 void setup()
 {
   GSM.begin(19200);               // the GPRS baud rate   
@@ -31,31 +47,31 @@ void setup()
 void loop()
 {
 
-/*while (GSM.available()){
-    Serial.write(GSM.read());
-}*/
- SmsRecu = LireMessage();
- //Serial.println(SmsRecu);
- delay(300);
- ProtocoleChauffage(SmsRecu);
-  delay(300);
+  while (GSM.available()){ //met dans une string les caractere envoyé par le GSM
+    c = (char)GSM.read();  
+    CommandeAT += c;    
+    Serial.write(c);    
+  }
+  
+  
+  if (CommandeAT.indexOf("+CMT")){  //test si il y a eu un evenement +CMT (activé lors de la reception d'un SMS)
+    
+      ProtocoleChauffage(CommandeAT);
+      CommandeAT="";
+      delay(300);
+  }
 
- 
-// delay(2000);
- 
 
 }
  
 void EnvoyerSMS(char * message,char * numeroGSM)
 {
-  int timeoutf;
-  int timeoutd = millis();
-  
-  while (GSM.available() != 0) {     //attente que la ligne RX soit rendu
-    Serial.write(GSM.read());
-  }
-  
+      
+  while (GSM.available()){
+  Serial.write(GSM.read());
     
+}
+  delay(100);
   GSM.print("AT+CMGF=1\r");    //Because we want to send the SMS in text mode
   delay(100);
   GSM.print("AT + CMGS = \"");
@@ -77,23 +93,13 @@ void SupprimerToutSms(){
   
 }
 
-String LireMessage(void){
+/*String LireSiMessageRecu(void){
   String S = "";
-  char c;
-  GSM.println("AT+CMGL=\"REC UNREAD\"");    //commande at pour lire dans la memoire tout les sms non lus
-  delay(100);
-  int timeoutf;
-  int timeoutd = millis();
-  
-  while (GSM.available() == 0) {     //attente d'une réponse avec timeout reponse;  
-      timeoutf = millis()-timeoutd;
-      if (timeoutf >= TIMEOUT_AT){
-        return "";
-      } 
-  }
-  
+
+
   if (GSM.available()){
-      while(S.indexOf("\nOK") == -1){   //lecture buffer serie en RX en attente que le GSM reponde OK (avec timeout)
+      timeoutd= millis();
+      while(S.indexOf("OK") == -1){   //lecture buffer serie en RX en attente que le GSM reponde OK (avec timeout)
         if (GSM.available()){
           S += (char)GSM.read();
         }
@@ -105,7 +111,7 @@ String LireMessage(void){
   }    
   return "deb"+S+"fin";
 
-}
+}*/
 
 boolean ProtocoleChauffage(String SmsR){
  
@@ -113,12 +119,14 @@ boolean ProtocoleChauffage(String SmsR){
     Serial.println("ALLUMAGE C1" );
     delay(400);
     EnvoyerSMS("Commande ALLUMAGE C1 bien recue par le module!",NUM_GSM_RECEVEUR);
+    TelerupteurImpuls(PIN_C1,DUREE_IMPULS);
     return 1;
  } 
  if (SmsR.indexOf(COMMANDE_ETEINT_C1) > -1){
     Serial.println("EXTINCTION C1" );
     delay(400);
     EnvoyerSMS("Commande EXTINCTION C1 bien recue par le module!",NUM_GSM_RECEVEUR);
+    TelerupteurImpuls(PIN_C1,DUREE_IMPULS);
     return 1;
  }
  
@@ -126,12 +134,14 @@ boolean ProtocoleChauffage(String SmsR){
     Serial.println("ALLUMAGE C2" );
     delay(400);
     EnvoyerSMS("Commande ALLUMAGE C2 bien recue par le module!",NUM_GSM_RECEVEUR);
+    TelerupteurImpuls(PIN_C2,DUREE_IMPULS);
     return 1;
  }
   if (SmsR.indexOf(COMMANDE_ETEINT_C2) > -1){
     Serial.println("EXTINCTION C2" );
     delay(400);
     EnvoyerSMS("Commande EXTINCTION C2 bien recue par le module!",NUM_GSM_RECEVEUR);
+    TelerupteurImpuls(PIN_C2,DUREE_IMPULS);
     return 1;
  }
  
@@ -139,12 +149,14 @@ boolean ProtocoleChauffage(String SmsR){
     Serial.println("ALLUMAGE C3" );
     delay(400);
     EnvoyerSMS("Commande ALLUMAGE C3 bien recue par le module!",NUM_GSM_RECEVEUR);
+    TelerupteurImpuls(PIN_C3,DUREE_IMPULS);
     return 1;
  }
   if (SmsR.indexOf(COMMANDE_ETEINT_C3) > -1){
     Serial.println("EXTINCTION C3" );
     delay(400);
     EnvoyerSMS("Commande EXTINCTION C3 bien recue par le module!",NUM_GSM_RECEVEUR);
+    TelerupteurImpuls(PIN_C3,DUREE_IMPULS);
     return 1;
  }
  
@@ -152,15 +164,21 @@ boolean ProtocoleChauffage(String SmsR){
     Serial.println("ALLUMAGE C4" );
     delay(400);
     EnvoyerSMS("Commande ALLUMAGE C4 bien recue par le module!",NUM_GSM_RECEVEUR);
-
+    TelerupteurImpuls(PIN_C4,DUREE_IMPULS);
     return 1;
  }
   if (SmsR.indexOf(COMMANDE_ETEINT_C4) > -1){
     Serial.println("EXTINCTION C4" );
     delay(400);
     EnvoyerSMS("Commande EXTINCTION C4 bien recue par le module!",NUM_GSM_RECEVEUR);
+    TelerupteurImpuls(PIN_C4,DUREE_IMPULS);
     return 1;
  }
- 
+ return 0;
+
+
+}
+
+boolean TelerupteurImpuls(int pin,int duree){
 
 }
