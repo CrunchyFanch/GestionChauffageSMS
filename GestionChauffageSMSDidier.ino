@@ -30,11 +30,12 @@ void setup()
 void loop()
 {
 
-/*while (GSM.available()){
+while (GSM.available()){
     Serial.write(GSM.read());
-}*/
+}
  SmsRecu = LireMessage();
- //Serial.println(SmsRecu);
+ Serial.println(SmsRecu);
+ delay(300);
  ProtocoleChauffage(SmsRecu);
 
  SmsRecu = "";
@@ -101,38 +102,54 @@ boolean ProtocoleChauffage(String SmsR){
  
  if (SmsR.indexOf(COMMANDE_ALLUM_C1) > -1){
     Serial.println("ALLUMAGE C1" );
-    EnvoyerSMS("
+    delay(400);
+    EnvoyerSMS("Commande ALLUMAGE C1 bien recue par le module!",NUM_GSM_RECEVEUR);
     return 1;
  } 
  if (SmsR.indexOf(COMMANDE_ETEINT_C1) > -1){
     Serial.println("EXTINCTION C1" );
+    delay(400);
+    EnvoyerSMS("Commande EXTINCTION C1 bien recue par le module!",NUM_GSM_RECEVEUR);
     return 1;
  }
  
  if (SmsR.indexOf(COMMANDE_ALLUM_C2) > -1){
     Serial.println("ALLUMAGE C2" );
+    delay(400);
+    EnvoyerSMS("Commande ALLUMAGE C2 bien recue par le module!",NUM_GSM_RECEVEUR);
     return 1;
  }
   if (SmsR.indexOf(COMMANDE_ETEINT_C2) > -1){
     Serial.println("EXTINCTION C2" );
+    delay(400);
+    EnvoyerSMS("Commande EXTINCTION C2 bien recue par le module!",NUM_GSM_RECEVEUR);
     return 1;
  }
  
   if (SmsR.indexOf(COMMANDE_ALLUM_C3) > -1){
     Serial.println("ALLUMAGE C3" );
+    delay(400);
+    EnvoyerSMS("Commande ALLUMAGE C3 bien recue par le module!",NUM_GSM_RECEVEUR);
     return 1;
  }
   if (SmsR.indexOf(COMMANDE_ETEINT_C3) > -1){
     Serial.println("EXTINCTION C3" );
+    delay(400);
+    EnvoyerSMS("Commande EXTINCTION C3 bien recue par le module!",NUM_GSM_RECEVEUR);
     return 1;
  }
  
   if (SmsR.indexOf(COMMANDE_ALLUM_C4) > -1){
     Serial.println("ALLUMAGE C4" );
+    delay(400);
+    EnvoyerSMS("Commande ALLUMAGE C4 bien recue par le module!",NUM_GSM_RECEVEUR);
+
     return 1;
  }
   if (SmsR.indexOf(COMMANDE_ETEINT_C4) > -1){
     Serial.println("EXTINCTION C4" );
+    delay(400);
+    EnvoyerSMS("Commande EXTINCTION C4 bien recue par le module!",NUM_GSM_RECEVEUR);
     return 1;
  }
  
