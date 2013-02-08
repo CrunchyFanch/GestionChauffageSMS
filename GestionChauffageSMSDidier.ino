@@ -19,14 +19,16 @@
 #define DUREE_IMPULS 3000
 
 
-#define COMMANDE_ALLUM_C1  "C1=ON"     //Definition des mot cle a envoyer par sms pour effectuer une action sur les chauffage
-#define COMMANDE_ETEINT_C1 "C1=OFF"
-#define COMMANDE_ALLUM_C2  "C2=ON"
-#define COMMANDE_ETEINT_C2 "C2=OFF"
-#define COMMANDE_ALLUM_C3  "C3=ON"
-#define COMMANDE_ETEINT_C3 "C3=OFF"
-#define COMMANDE_ALLUM_C4  "C4=ON"
-#define COMMANDE_ETEINT_C4 "C4=OFF"
+#define COMMANDE_C1 "TELERUPT_C1"     //Definition des mot cle a envoyer par sms pour effectuer une action sur les chauffage
+#define COMMANDE_C2 "TELERUPT_C2"
+#define COMMANDE_C3 "TELERUPT_C3"
+#define COMMANDE_C4 "TELERUPT_C4"
+
+#define SMS_CMD_C1 "IMPULSION SUR C1"
+#define SMS_CMD_C2 "IMPULSION SUR C2"
+#define SMS_CMD_C3 "IMPULSION SUR C3"
+#define SMS_CMD_C4 "IMPULSION SUR C4"
+
 
 #define COMMANDE_ETAT_CHAUFFAGE "ETAT_CHAUFF" //mot cle pour lister l'etat des chauffage
 
@@ -58,15 +60,15 @@ void setup()
 
   GSM.println("AT+IPR=9600");
   delay(200);
-  GSM.println("AT+CMGD=0,3");   // commande At du type +CMGD=index[,flag] pour effacer tout les sms ( du type "received read", "stored unsent" or "stored sent" )lu index est ignorÃ©
+  GSM.println("AT+CMGD=0,4");   // commande At du type +CMGD=index[,flag] pour effacer tout les sms ( du type "received read", "stored unsent" or "stored sent" )lu index est ignorÃ©
   delay(200);
-  GSM.flush();
+  //GSM.flush();
 }
  
 void loop(){
  
   int ind1,ind2;
- String S0,S1,S2,S3;
+ String S0,S1,S2;
   delay(2000);
   S0 = LireSerialData();
    
@@ -95,11 +97,11 @@ void loop(){
 
           //delay(1000);
           GSM.listen();
-          EnvoiSMS(BufferSMS,NUM_GSM_RECEVEUR);
+         String S3 =  EnvoiSMS(BufferSMS,NUM_GSM_RECEVEUR);
 
           Serial.print("--- ENVOI SMS:");
 
-          Serial.println(BufferSMS);
+          Serial.println(S3);
 
           SmSaEnvoyer = false;
           BufferSMS = "";
@@ -121,48 +123,29 @@ String LireMessageSMS(void){
 }
  
 String ProtocoleChauffage(String smsr){    
-  String retour ="";
-  BufferSMS = "";
+  String retour;
+ //BufferSMS = "";
   SmSaEnvoyer = false; 
-  
-     if  (smsr == COMMANDE_ALLUM_C1){
+ delay(200); 
+
+     if  (smsr == COMMANDE_C1){
          TelerupteurImpuls(PIN_C1,DUREE_IMPULS);
-         retour = "ALLUMAGE CHAUFFAGE 1";
-         SmSaEnvoyer = true;  
-     }
-     if  (smsr == COMMANDE_ETEINT_C1){
-         TelerupteurImpuls(PIN_C1,DUREE_IMPULS);
-         retour = "EXTINCTION CHAUFFAGE 1"; 
+         retour = SMS_CMD_C1;
          SmSaEnvoyer = true; 
      }
-     if  (smsr == COMMANDE_ALLUM_C2){
-        TelerupteurImpuls(PIN_C2,DUREE_IMPULS);
-         retour = "ALLUMAGE CHAUFFAGE 2";   
-         SmSaEnvoyer = true; 
-     }
-     if  (smsr == COMMANDE_ETEINT_C2){
+     if  (smsr == COMMANDE_C2){
          TelerupteurImpuls(PIN_C2,DUREE_IMPULS);
-         retour = "EXTINCTION CHAUFFAGE 2";
-         SmSaEnvoyer = true;      
-    }
-     if  (smsr == COMMANDE_ALLUM_C3){
-         TelerupteurImpuls(PIN_C3,DUREE_IMPULS);
-         retour = "ALLUMAGE CHAUFFAGE 3";
-         SmSaEnvoyer = true;         
+         retour = SMS_CMD_C2;
+         SmSaEnvoyer = true; 
      }
-     if  (smsr == COMMANDE_ETEINT_C3){
+     if  (smsr == COMMANDE_C3){
          TelerupteurImpuls(PIN_C3,DUREE_IMPULS);
-         retour = "EXTINCTION CHAUFFAGE 3";
-         SmSaEnvoyer = true;
-     }           
-     if  (smsr == COMMANDE_ALLUM_C4){
+         retour = SMS_CMD_C3;
+         SmSaEnvoyer = true; 
+     }     
+     if  (smsr == COMMANDE_C4){
          TelerupteurImpuls(PIN_C4,DUREE_IMPULS);
-         retour = "ALLUMAGE CHAUFFAGE 4";
-         SmSaEnvoyer = true;    
-     }
-     if  (smsr == COMMANDE_ETEINT_C4){
-         TelerupteurImpuls(PIN_C4,DUREE_IMPULS);
-         retour = "EXTINCTION CHAUFFAGE 4";
+         retour = SMS_CMD_C4;
          SmSaEnvoyer = true; 
      }
      if  (smsr == COMMANDE_ETAT_CHAUFFAGE){
@@ -220,47 +203,53 @@ String LireSerialData(void)
   char c;
   String S = "";
   //Serial.flush();
-  while(GSM.available()!=0){
+ if (GSM.available() > 5)
+{ while(GSM.available()!=0){
     c = (char)GSM.read();    
         if (c>=32 && c<= 126)
     { 
-    //  Serial.write(c);
+      Serial.write(c);
       S.concat(c);
     }   
   }
-  
+}
   return S;
 }
 
-void EnvoiSMS(String message,char * numeroGSM)
+String EnvoiSMS(String message,String numeroGSM)
 {
+ 
   GSM.print("AT+CMGF=1\r"); 
   delay(200);
- 
+   Serial.print("1");
   GSM.print("AT + CMGS = \"");
   delay(200);   
-
+  Serial.print("2");
   GSM.print(numeroGSM); //numero mobile destinataire
   delay(200);
-
+Serial.print("3");
   GSM.println("\"");
   delay(200);
-
+Serial.print("4");
   GSM.print(message);//contenu du message
   delay(200);
-
+Serial.print("4");
   GSM.println((char)26);// ASCII de ctrl-Z (26)
   delay(200);
-
+Serial.print("5");
   GSM.println();
   String retour;
+  int time2;
+  int time1 = millis();
   do 
   {
+    Serial.print("6");
    retour = LireSerialData();
-   delay(200);
-   Serial.println("bouclesms");
-  }while(retour.indexOf("OK") > -1 || retour.indexOf("ERROR") > -1); //attente de la reponse de la commande AT
-   
-  delay(200);
+ 
+ time2=millis();
+  }while(retour.indexOf("OK") > -1  && time2-time1 < 3000 ); //attente de la reponse de la commande AT
+ 
+  GSM.flush();
+  return message;
 
 }
