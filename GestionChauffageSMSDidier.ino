@@ -51,7 +51,7 @@ void setup()
   pinMode(PIN_RETOUR_C4,INPUT_PULLUP);
   
   GSM.begin(9600);                
-  Serial.begin(2400);
+  Serial.begin(9600);
   delay(2000);
   Serial.println("REBOOT!! ");
   
@@ -153,6 +153,7 @@ String ProtocoleChauffage(String smsr){
      if  (smsr == COMMANDE_ETEINT_C3){
          TelerupteurImpuls(PIN_C3,DUREE_IMPULS);
          retour = "EXTINCTION CHAUFFAGE 3";
+         SmSaEnvoyer = true;
      }           
      if  (smsr == COMMANDE_ALLUM_C4){
          TelerupteurImpuls(PIN_C4,DUREE_IMPULS);
