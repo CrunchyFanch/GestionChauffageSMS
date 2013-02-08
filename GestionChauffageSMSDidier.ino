@@ -1,5 +1,4 @@
 
- 
 #include <SoftwareSerial.h>
 #include <String.h>
  
@@ -20,16 +19,16 @@
 #define DUREE_IMPULS 3000
 
 
-#define COMMANDE_ALLUM_C1  "CHAUFFAGE1:ON"     //Definition des mot cle a envoyer par sms pour effectuer une action sur les chauffage
-#define COMMANDE_ETEINT_C1 "CHAUFFAGE1:OFF"
-#define COMMANDE_ALLUM_C2  "CHAUFFAGE2:ON"
-#define COMMANDE_ETEINT_C2 "CHAUFFAGE2:OFF"
-#define COMMANDE_ALLUM_C3  "CHAUFFAGE3:ON"
-#define COMMANDE_ETEINT_C3 "CHAUFFAGE3:OFF"
-#define COMMANDE_ALLUM_C4  "CHAUFFAGE4:ON"
-#define COMMANDE_ETEINT_C4 "CHAUFFAGE4:OFF"
+#define COMMANDE_ALLUM_C1  "C1=ON"     //Definition des mot cle a envoyer par sms pour effectuer une action sur les chauffage
+#define COMMANDE_ETEINT_C1 "C1=OFF"
+#define COMMANDE_ALLUM_C2  "C2=ON"
+#define COMMANDE_ETEINT_C2 "C2=OFF"
+#define COMMANDE_ALLUM_C3  "C3=ON"
+#define COMMANDE_ETEINT_C3 "C3=OFF"
+#define COMMANDE_ALLUM_C4  "C4=ON"
+#define COMMANDE_ETEINT_C4 "C4=OFF"
 
-#define COMMANDE_ETAT_CHAUFFAGE "CHAUFF_ETAT" //mot cle pour lister l'etat des chauffage
+#define COMMANDE_ETAT_CHAUFFAGE "ETAT_CHAUFF" //mot cle pour lister l'etat des chauffage
 
 
 
@@ -46,76 +45,76 @@ void setup()
   pinMode(PIN_C3,OUTPUT);
   pinMode(PIN_C4,OUTPUT);
   
-  pinMode(PIN_RETOUR_C1,INPUT); //mode des pin en entrÃ©e
-  pinMode(PIN_RETOUR_C2,INPUT);
-  pinMode(PIN_RETOUR_C3,INPUT);
-  pinMode(PIN_RETOUR_C4,INPUT);
+  pinMode(PIN_RETOUR_C1,INPUT_PULLUP); //mode des pin en entree
+  pinMode(PIN_RETOUR_C2,INPUT_PULLUP);
+  pinMode(PIN_RETOUR_C3,INPUT_PULLUP);
+  pinMode(PIN_RETOUR_C4,INPUT_PULLUP);
   
   GSM.begin(9600);                
-  Serial.begin(9600);
-  Serial.println("\rREBOOT!! ");
+  Serial.begin(2400);
+  delay(2000);
+  Serial.println("REBOOT!! ");
   
 
   GSM.println("AT+IPR=9600");
-  delay(2000);
+  delay(200);
   GSM.println("AT+CMGD=0,3");   // commande At du type +CMGD=index[,flag] pour effacer tout les sms ( du type "received read", "stored unsent" or "stored sent" )lu index est ignorÃ©
-  delay(100);
-
+  delay(200);
+  GSM.flush();
 }
  
-void loop()
-{
- int ind1,ind2;
- String S1,S2,S3;
-      if ( GSM.available() == 0 && SmSaEnvoyer == false){         
-         S1 =   LireMessageSMS();
-            if (S1.indexOf("+CMGL:") > -1){
-              TelerupteurImpuls(PIN_C2,1000);
-              
-              if (S1.indexOf("CHAUFF") > -1){                          
-                 ind = S1.lastIndexOf('\"');            //
-                 ind2 = S1.lastIndexOf("OK");          //retrouve le texte du sms dans la chaine AT
-                 S2 = S1.substring(ind+1,ind2);        //
-                 delay(500);
-                 Serial.println("bonne commande");
-                 S3 = ProtocoleChauffage(S2);
-                 delay(500);
-                 Serial.print("***RETOUR FONCTION:");
-                 delay(500);
-                 Serial.println(S3);
-                 delay(500);
-              }else{
-                delay(500);
+void loop(){
+ 
+  int ind1,ind2;
+ String S0,S1,S2,S3;
+  delay(2000);
+  S0 = LireSerialData();
+   
+  
+      if ( SmSaEnvoyer == false && (S0.indexOf("+CMT") >-1)) {         
+
+            Serial.print("xxxxx");            
+            Serial.print(S0);
+            Serial.println("*****");                                       
+             ind = S0.lastIndexOf('\"');            //
+             ind2 = S0.lastIndexOf("OK");          //retrouve le texte du sms dans la chaine AT
+             S1 = S0.substring(ind+1,ind2);        // 
+             S2 = ProtocoleChauffage(S1);
+             Serial.print("***RETOUR FONCTION:");
+             Serial.println(S2);
+              /*else{
+                delay(200);
                 Serial.println("mauvaise commande");
-                 delay(500);
-              }
+                 delay(200);
+              }*/
                                                          
-            }
+            
     } 
               
-   if (GSM.available() == 0 && SmSaEnvoyer){
+   if (SmSaEnvoyer){
+
+          //delay(1000);
+          GSM.listen();
           EnvoiSMS(BufferSMS,NUM_GSM_RECEVEUR);
-          delay(500);
+
           Serial.print("--- ENVOI SMS:");
-          delay(500);
+
           Serial.println(BufferSMS);
-          delay(2000);
+
           SmSaEnvoyer = false;
           BufferSMS = "";
    } 
    
-  
-//  delay(2000);
-  LireSerialData();
+
 
 }
  
 
 
 
+String LireMessageSMS(void){
 
-String LireMessageSMS(){
- GSM.println("AT+CMGL=\"REC UNREAD\"");    //commande at pour lire dans la memoire tout les sms non lus
+  GSM.println("AT+CMGL=\"REC UNREAD\"");    //commande at pour lire dans la memoire tout les sms non lus
   delay(500);
   String S = LireSerialData();
   return S;
@@ -166,8 +165,15 @@ String ProtocoleChauffage(String smsr){
          SmSaEnvoyer = true; 
      }
      if  (smsr == COMMANDE_ETAT_CHAUFFAGE){
-         retour = "ETAT CHAUFFAGE : C1="+LireEtatChauff(PIN_RETOUR_C1)+", C2="+LireEtatChauff(PIN_RETOUR_C2)+", C3="
-                                        +LireEtatChauff(PIN_RETOUR_C3)+", C4="+LireEtatChauff(PIN_RETOUR_C4);
+         
+         retour += LireEtatChauff(PIN_RETOUR_C1);
+         retour += ',';
+         retour += LireEtatChauff(PIN_RETOUR_C2);
+         retour += ',';
+         retour += LireEtatChauff(PIN_RETOUR_C3);
+         retour += ',';
+         retour += LireEtatChauff(PIN_RETOUR_C4);
+                 
          SmSaEnvoyer = true;                               
      }
  
@@ -175,16 +181,11 @@ String ProtocoleChauffage(String smsr){
       BufferSMS = retour;
     }else{  
       BufferSMS = "Commande non reconnue!";
+      SmSaEnvoyer = true;  
     }
     
     return BufferSMS;
   }
-
-
-  
-  
-  
-
 
 boolean TelerupteurImpuls(int pin,int duree){
   digitalWrite(pin, HIGH);
@@ -206,48 +207,59 @@ void RebootGSM(void){
 
 String LireEtatChauff(int pin){
   if (digitalRead(pin)){
-    return "ON"; 
+    return "OFF"; 
   }else{
-    return "OFF";
+    return "ON";
   }
   
 }  
 
-String LireSerialData()
+String LireSerialData(void)
 {
   char c;
   String S = "";
   //Serial.flush();
   while(GSM.available()!=0){
-    c = (char)GSM.read();
-    
-    Serial.write(c);
-    if (c>=32 && c<= 126)
+    c = (char)GSM.read();    
+        if (c>=32 && c<= 126)
     { 
+    //  Serial.write(c);
       S.concat(c);
     }   
   }
   
   return S;
 }
+
 void EnvoiSMS(String message,char * numeroGSM)
 {
-      
-    
   GSM.print("AT+CMGF=1\r"); 
-  delay(100);
-  GSM.print("AT + CMGS = \"");
-  delay(100);   
-  GSM.print(numeroGSM); //numero mobile destinataire
-  delay(100);
-  GSM.println("\"");
-  delay(100);
-  GSM.print(message);//contenu du message
-  delay(100);
-  GSM.println((char)26);// ASCII de ctrl-Z (26)
-  delay(100);
-  GSM.println();
-  delay(100);
+  delay(200);
  
-}
+  GSM.print("AT + CMGS = \"");
+  delay(200);   
 
+  GSM.print(numeroGSM); //numero mobile destinataire
+  delay(200);
+
+  GSM.println("\"");
+  delay(200);
+
+  GSM.print(message);//contenu du message
+  delay(200);
+
+  GSM.println((char)26);// ASCII de ctrl-Z (26)
+  delay(200);
+
+  GSM.println();
+  String retour;
+  do 
+  {
+   retour = LireSerialData();
+   delay(200);
+   Serial.println("bouclesms");
+  }while(retour.indexOf("OK") > -1 || retour.indexOf("ERROR") > -1); //attente de la reponse de la commande AT
+   
+  delay(200);
+
+}
