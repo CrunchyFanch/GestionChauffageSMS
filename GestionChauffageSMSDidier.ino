@@ -16,6 +16,8 @@
 #define PIN_RETOUR_C3 A2
 #define PIN_RETOUR_C4 A3
 
+#define LED_PRET A4
+
 #define DUREE_IMPULS 3000
 
 OneWire oneWire(ONE_WIRE_BUS);
@@ -35,6 +37,8 @@ void setup()
   pinMode(PIN_C3,OUTPUT);
   pinMode(PIN_C4,OUTPUT);
   
+   pinMode(LED_PRET,OUTPUT);
+  
  /* pinMode(PIN_RETOUR_C1,INPUT_PULLUP); //mode des pin en entree avec activation des resistances de PULLUP interne à l'arduino
   pinMode(PIN_RETOUR_C2,INPUT_PULLUP);
   pinMode(PIN_RETOUR_C3,INPUT_PULLUP);
@@ -43,17 +47,20 @@ void setup()
   
   LireTemp(temp_str);   //lance la lecture de temperature
   
-  Serial.begin(9600);
+//  Serial.begin(9600);
 
 
-  if (gsm.begin(2400)){
+  if (gsm.begin(2400)){   
+    EffaceToutSms();
     Serial.println("\nModule pret");
-    started=true;  
+    started=true;
+
+    
   }
   else Serial.println("\nEchec");
   
   if(started){
-
+  digitalWrite(LED_PRET,HIGH);
   }
 
 };
@@ -70,7 +77,7 @@ char sms_envoi[160];// tableau globale pour le texte des  SMS a envoyer
   delay(2000);
   
   char pos = ModuleSms.IsSMSPresent(SMS_UNREAD);
-  if (pos) {
+  if (pos > 0) {
 
     ModuleSms.GetSMS(pos, phone_num, sms_text, 160);
     Serial.println(phone_num);
@@ -84,6 +91,7 @@ char sms_envoi[160];// tableau globale pour le texte des  SMS a envoyer
     if (ModuleSms.SendSMS(phone_num,sms_envoi)){
          Serial.println("\nSMS envoye:");
          Serial.println(sms_envoi);
+         EffaceToutSms();
     }
    
   }else{
@@ -146,7 +154,7 @@ void Chauffage(char tab[],char sms[]){ //fonction qui lit le sms en entree et ef
           
        }
        if (strcmp(tab,"INFO") == 0){
-          
+         Serial.print("entre"); 
          strcpy(retour,"Chauffage: ");
         if (analogRead(PIN_RETOUR_C1) < 500) strcat(retour,"C1=OFF,");
            else strcat(retour,"C1=ON,");
@@ -175,4 +183,23 @@ void Chauffage(char tab[],char sms[]){ //fonction qui lit le sms en entree et ef
 
 }
 
+
+void EffaceToutSms(){
+
+      gsm.RxInit(5000, 1500); 
+      gsm.SimpleWriteln("AT+CMGD=0,4");
+      
+      byte status =  RX_NOT_FINISHED;
+      do {
+    if (gsm.IsStringReceived("OK")) { 
+      
+      byte status = RX_FINISHED;
+      break; 
+    }
+    status = gsm.IsRxFinished();
+  } while (status == RX_NOT_FINISHED);
+  Serial.println("SMS effaces");
+
+
+}
 
